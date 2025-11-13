@@ -1,0 +1,164 @@
+# 操作系统生成的文件
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# 编辑器和IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# 日志文件
+*.log
+*.log.*
+
+# 临时文件
+*.tmp
+*.temp
+*.bak
+*.backup
+
+# 压缩文件
+*.zip
+*.tar.gz
+*.rar
+*.7z
+
+# 编译生成的文件
+*.exe
+*.bin
+*.deb
+*.rpm
+
+# 环境配置文件
+.env
+.env.*
+!.env.example
+
+# 本地配置文件
+config/local_*
+conf/local_*
+
+# 数据和缓存目录
+cache/
+data/
+logs/
+temp/
+
+# 系统运行时文件
+*.pid
+*.lock
+*.sock
+
+# 证书和密钥文件
+*.pem
+*.key
+*.crt
+*.p12
+
+# 测试覆盖率报告
+coverage/
+.coverage
+.nyc_output/
+
+# Node.js (如果有Node相关的工具)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Python (如果有Python脚本)
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.env
+
+# 大模型和AI相关配置
+claude/
+.claude/
+openai/
+anthropic/
+llama/
+model_cache/
+cache/models/
+.cache/ai/
+*.model
+*.pkl
+*.pickle
+*.joblib
+
+# 配置文件和设置目录
+settings/
+config/ai/
+conf/ai/
+.ai/
+claude-desktop/
+claude-code/
+
+# 临时生成的AI文件
+ai-output/
+ai-generated/
+generated/
+output/
+results/
+
+# 数据文件
+*.csv
+*.json
+*.jsonl
+*.parquet
+*.h5
+*.hdf5
+*.npz
+*.npy
+
+# 大型语言模型文件
+*.bin
+*.safetensors
+*.ggml
+*.gguf
+
+# 向量数据库
+chroma/
+faiss/
+pinecone/
+weaviate/
+
+# 实验和Notebook
+experiments/
+notebooks/
+*.ipynb
+
+# 本地开发配置
+.local_config/
+dev_config/
+*.local
+
+# 备份和归档文件
+*.old
+*.orig
+*.save
+
+# 大文件（可根据需要调整大小阈值）
+*.iso
+*.dmg
+*.img
+
+# 特定项目的忽略文件
+disk-sentry/logs/
+disk-sentry/*.pid
+disk-sentry/*.log
+
+# 本地开发生成的文件
+local_settings.py
+*.local
