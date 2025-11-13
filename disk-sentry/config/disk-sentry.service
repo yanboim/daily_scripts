@@ -1,0 +1,13 @@
+[Unit]
+Description=Disk I/O Sentry Script v3
+After=network.target
+
+[Service]
+ExecStart=/usr/local/bin/disk_sentry.sh
+Restart=always
+RestartSec=10
+User=root
+Group=root
+
+[Install]
+WantedBy=multi-user.target
