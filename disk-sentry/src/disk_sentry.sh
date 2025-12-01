@@ -6,21 +6,22 @@ export LC_ALL=C
 
 ################################################################################
 #
-# 脚本名称: 磁盘 I/O 哨兵 v3 (Disk I/O Sentry v3)
+# 脚本名称: 磁盘 I/O 哨兵 v3 网络增强版 (Disk I/O Sentry v3 Enhanced)
 # 适用系统: Linux (Debian/RHEL-based)
-# 依赖工具: iotop, lsof, df, du, awk, sed, stat, mv
+# 依赖工具: iotop, lsof, df, du, awk, sed, stat, mv, ss, netstat
 #
 # ----------
-# ** 脚本作用 (v3 安全版) **
+# ** 脚本作用 (v3 网络增强版) **
 # ----------
 #
 # 解决"瞬时磁盘爆满"后无法定位元凶的问题。
 #
-# v3 版本核心安全特性：
+# v3 网络增强版核心特性：
 # 1. [日志自管理]: 防止本脚本的日志文件无限增长撑爆磁盘 (MAX_LOG_SIZE)。
 # 2. [依赖检查]: 启动时检查所有依赖命令，防止关键时刻掉链子。
 # 3. [环境锁定]: 强制 LANG=C，防止因系统语言不同导致 df 等命令解析失败。
 # 4. [精确定位]: 增加 [证据 4]，lsof -p <PID>，反查元凶进程打开的具体文件。
+# 5. [网络连接分析]: 新增 [证据 5]，分析元凶进程的网络连接和端口占用情况。
 #
 ################################################################################
 
@@ -46,8 +47,69 @@ MAX_LOG_SIZE=52428800
 
 # --- 脚本主逻辑 ---
 
+# [v3 网络增强] 网络连接分析函数
+analyze_culprit_connections() {
+    local culprit_pid=$1
+
+    echo "" >> "$LOG_FILE"
+    echo "--- [证据 5] 网络连接分析 (PID: $culprit_pid) ---" >> "$LOG_FILE"
+
+    if [ -z "$culprit_pid" ] || [ "$culprit_pid" = "-" ]; then
+        echo "无效的 PID，跳过网络连接分析" >> "$LOG_FILE"
+        return
+    fi
+
+    # 检查进程是否仍然存在
+    if ! kill -0 "$culprit_pid" 2>/dev/null; then
+        echo "进程 $culprit_pid 已终止，跳过网络连接分析" >> "$LOG_FILE"
+        return
+    fi
+
+    # 分析监听端口 (优先使用 ss，回退到 netstat)
+    echo "监听端口:" >> "$LOG_FILE"
+    if command -v ss &> /dev/null; then
+        ss -tlnp | grep "pid=$culprit_pid" | while read line; do
+            echo "  $line" >> "$LOG_FILE"
+        done
+    else
+        netstat -tlnp 2>/dev/null | grep "$culprit_pid/" | while read line; do
+            echo "  $line" >> "$LOG_FILE"
+        done
+    fi
+
+    # 分析网络连接统计
+    echo "" >> "$LOG_FILE"
+    echo "连接统计:" >> "$LOG_FILE"
+
+    # 获取所有网络连接
+    local connections=""
+    if command -v ss &> /dev/null; then
+        connections=$(ss -tnp | grep "pid=$culprit_pid" 2>/dev/null)
+    else
+        connections=$(netstat -tnp 2>/dev/null | grep "$culprit_pid/")
+    fi
+
+    if [ -n "$connections" ]; then
+        local total_connections=$(echo "$connections" | wc -l)
+        local unique_ips=$(echo "$connections" | awk '{print $5}' | cut -d: -f1 | grep -v "0.0.0.0" | grep -v "::" | grep -v "127.0.0.1" | sort -u | wc -l)
+
+        echo "  总连接 $total_connections 个，来自 $unique_ips 个不同 IP" >> "$LOG_FILE"
+
+        # 统计连接来源 IP
+        if [ "$unique_ips" -gt 0 ]; then
+            echo "" >> "$LOG_FILE"
+            echo "主要连接来源:" >> "$LOG_FILE"
+            echo "$connections" | awk '{print $5}' | cut -d: -f1 | grep -v "0.0.0.0" | grep -v "::" | grep -v "127.0.0.1" | sort | uniq -c | sort -nr | head -10 | while read count ip; do
+                echo "  $ip: $count 个连接" >> "$LOG_FILE"
+            done
+        fi
+    else
+        echo "  无活动网络连接" >> "$LOG_FILE"
+    fi
+}
+
 # [v3 安全] 步骤 1: 启动时依赖检查
-COMMANDS_NEEDED="iotop lsof df du awk sed stat mv"
+COMMANDS_NEEDED="iotop lsof df du awk sed stat mv ss netstat"
 for cmd in $COMMANDS_NEEDED; do
     if ! command -v "$cmd" &> /dev/null; then
         # 同时输出到 stderr (systemctl status 可见) 和日志文件
@@ -135,6 +197,9 @@ while true; do
         else
             echo "无法从 iotop 输出中自动解析元凶 PID。" >> "$LOG_FILE"
         fi
+
+        # [v3 网络增强] 证据 5: 分析元凶进程的网络连接
+        analyze_culprit_connections "$TOP_PID"
 
         echo "--------------------------------------------------------------" >> "$LOG_FILE"
 
